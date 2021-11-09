@@ -1,0 +1,1 @@
+'part' -> SYS::property -> 'Hello from Tailspin $;' -> !OUT::write
