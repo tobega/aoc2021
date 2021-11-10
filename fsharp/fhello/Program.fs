@@ -2,12 +2,16 @@
 
 open System
 
-// Define a function to construct a message to print
-let from whom =
-    sprintf "from %s %s" whom (Environment.GetEnvironmentVariable("part"))
+let solutionPart1 = "1337"
+
+let solutionPart2 = "42"
 
 [<EntryPoint>]
 let main argv =
-    let message = from "F#" // Call the function
-    printfn "Hello world %s" message
+    printfn "%s" (
+        match Environment.GetEnvironmentVariable("part") with
+        | null | "part1" -> solutionPart1
+        | "part2" -> solutionPart2
+        | env -> $"Unknown value {env}"
+    )
     0 // return an integer exit code
