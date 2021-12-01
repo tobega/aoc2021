@@ -6,9 +6,8 @@ end function
 
 function solutionPart2(n, data)
   implicit none
-  integer :: n, data(n), solutionPart2, sliding(n-2)
-  sliding=data(1:n-2)+data(2:n-1)+data(3:n)
-  solutionPart2=count(sliding(2:n-2).gt.sliding(1:n-3))
+  integer :: n, data(n), solutionPart2
+  solutionPart2=count(data(4:n).gt.data(1:n-3))
 end function
 
 program aoc
