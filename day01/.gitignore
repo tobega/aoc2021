@@ -1,7 +1,2 @@
-bin/
-obj/
-
-.fake
-.ionide
-
 a.out
+*.out

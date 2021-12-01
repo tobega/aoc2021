@@ -1,16 +1,8 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0-alpine AS build
-
-# build application 
-WORKDIR /src
+FROM gcc as BASE
 COPY . .
-RUN dotnet restore
-RUN dotnet publish -c release -o /app --no-self-contained --no-restore
+RUN gfortran -static main.f90 -o aoc
 
-# final stage/image
-FROM mcr.microsoft.com/dotnet/runtime:5.0-alpine
-
-WORKDIR /app
-COPY --from=build /app .
+FROM alpine
+COPY --from=BASE aoc .
 COPY input.txt .
-
-ENTRYPOINT ["./app"]
+CMD ["./aoc"]
