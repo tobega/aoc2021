@@ -1,40 +1,63 @@
-function solutionPart1(n, data)
+function solutionPart1()
   implicit none
-  integer :: n, data(n), solutionPart1
-  solutionPart1=count(data(2:n).gt.data(1:n-1))
+  integer :: a, b, solutionPart1
+  solutionPart1=0
+  read(20,*,end=900) a
+  do while(.true.)
+    read(20,*,end=900) b
+    if (b.gt.a) then
+      solutionPart1=solutionPart1+1
+    end if
+    read(20,*,end=900) a
+    if (a.gt.b) then
+      solutionPart1=solutionPart1+1
+    end if
+  end do
+900 return
 end function
 
-function solutionPart2(n, data)
+function solutionPart2()
   implicit none
-  integer :: n, data(n), solutionPart2
-  solutionPart2=count(data(4:n).gt.data(1:n-3))
+  integer :: a, b, c, d, solutionPart2
+  solutionPart2=0
+  read(20,*,end=990) a
+  read(20,*,end=990) b
+  read(20,*,end=990) c
+  do while(.true.)
+    read(20,*,end=990) d
+    if (d.gt.a) then
+      solutionPart2=solutionPart2+1
+    end if
+    read(20,*,end=990) a
+    if (a.gt.b) then
+      solutionPart2=solutionPart2+1
+    end if
+    read(20,*,end=990) b
+    if (b.gt.c) then
+      solutionPart2=solutionPart2+1
+    end if
+    read(20,*,end=990) c
+    if (c.gt.d) then
+      solutionPart2=solutionPart2+1
+    end if
+  end do
+990 return
 end function
 
 program aoc
   implicit none
-  integer, allocatable :: data(:)
-  integer :: n, stat, x
   character(len=6) :: part
   integer :: solutionPart1, solutionPart2
 
   open(20,file='input.txt')
-  n=-1
-  stat=0
-  do while(stat == 0)
-     n=n+1
-     read(20,*,iostat=stat)x
-  enddo
-  allocate(data(n))
-  rewind(20)
-  read(20,*)data
-  close(20)
 
   call get_environment_variable('part', part)
   if (trim(part).eq.'part1'.or.trim(part).eq.'') then
-    print *, solutionPart1(n, data)
+    print *, solutionPart1()
   else if (trim(part).eq.'part2') then
-    print *, solutionPart2(n, data)
+    print *, solutionPart2()
   else
     print *, 'Unknown part '//part
   end if
+  close(20)
 end program aoc
