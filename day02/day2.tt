@@ -1,0 +1,45 @@
+composer command
+  { <~WS>: (<WS>) <"1">}
+end command
+
+def commands: [$IN::lines -> command];
+
+source solutionPart1
+  @: {distance: 0"1", depth: 0"1"};
+  $commands... -> #
+  $@.distance * $@.depth !
+  <{forward: <>}> @.distance: $@.distance + $.forward;
+  <{down: <>}> @.depth: $@.depth + $.down;
+  <{up: <>}> @.depth: $@.depth - $.up;
+end solutionPart1
+
+test 'part1'
+  modify program
+    def commands: [
+      {forward: 5"1"},
+      {down: 5"1"},
+      {forward: 8"1"},
+      {up: 3"1"},
+      {down: 8"1"},
+      {forward: 2"1"}
+    ];
+  end program
+  assert $solutionPart1 <=150> ''
+end 'part1'
+
+source solutionPart2
+  @: {distance: 0"1", depth: 0"1", aim: 0"1"};
+  $commands... -> #
+  $@.distance * $@.depth !
+  <{forward: <>}> @.distance: $@.distance + $.forward; @.depth: $@.depth + $@.aim * $.forward;
+  <{down: <>}> @.aim: $@.aim + $.down;
+  <{up: <>}> @.aim: $@.aim - $.up;
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> 'Tailspin
+$;
+' -> !OUT::write
