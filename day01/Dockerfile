@@ -1,6 +1,6 @@
 FROM gcc as BASE
 COPY . .
-RUN gfortran -static main.f90 -o aoc
+RUN gfortran -static -O3 main.f90 -o aoc
 
 FROM alpine
 COPY --from=BASE aoc .
