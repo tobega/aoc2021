@@ -18,20 +18,15 @@ public class Main {
     }
 
     private static class Board {
-        private final Integer[] rowMap = new Integer[100];
-        private final Integer[] colMap = new Integer[100];
+        private final Integer[] rowMap;
+        private final Integer[] colMap;
         private final int[] rowMarks = new int[5];
         private final int[] colMarks = new int[5];
 
 
-        public Board(List<List<Integer>> squares) {
-            for (int r = 0; r < squares.size(); r++) {
-                List<Integer> row = squares.get(r);
-                for (int c = 0; c < row.size(); c++) {
-                    rowMap[row.get(c)] = r;
-                    colMap[row.get(c)] = c;
-                }
-            }
+        public Board(Integer[] rowMap, Integer[] colMap) {
+            this.rowMap = rowMap;
+            this.colMap = colMap;
         }
 
         public int callsToCompletion(List<Integer> numbers) {
@@ -99,9 +94,16 @@ public class Main {
     }
 
     private static Board readBoard(List<String> lines) {
-        List<List<Integer>> squares = lines.stream().map(s -> Arrays.stream(s.trim().split("\s+"))
-                .map(Integer::parseUnsignedInt).collect(Collectors.toList()))
-            .collect(Collectors.toList());
-        return new Board(squares);
+        Integer[] rowMap = new Integer[100];
+        Integer[] colMap = new Integer[100];
+        for (int r = 0; r < lines.size(); r++) {
+            String[] row = lines.get(r).trim().split("\s+");
+            for (int c = 0; c < row.length; c++) {
+                int number = Integer.parseUnsignedInt(row[c]);
+                rowMap[number] = r;
+                colMap[number] = c;
+            }
+        }
+        return new Board(rowMap, colMap);
     }
 }
