@@ -46,7 +46,7 @@ function solutionPart2()
     end if
   end do
   ogr=sum(pack(powers,data(1:12,selected(1)).EQ.1))
-  selected=(/(i,i=1,n)/)
+  selected=(/(i, i=1,n)/)
   do i=1,12
     ones=sum(data(i,selected))
     if (ones.lt.(size(selected)+1)/2) then
