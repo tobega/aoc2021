@@ -1,0 +1,46 @@
+composer pos
+  @: 0;
+  <h>+
+  rule h: {id: $@, h: <"1"> (<','>?)} (@: $@ + 1;)
+end pos
+
+def input: {| $IN::lines -> pos|};
+def min: $input... -> ..=Min&{by: :(h:), select: :(h:)};
+def max: $input... -> ..=Max&{by: :(h:), select: :(h:)};
+def aligns: {| $min..$max -> {align: $} |};
+
+templates abs
+  when <0"1"..> do $!
+  otherwise -$!
+end abs
+
+source solutionPart1
+  ($aligns join $input) -> $({id:, align:, fuel: §.align - §.h -> abs})
+  -> $(collect {totalFuel: Sum&{of: :(fuel:)}} by $({align:}))...
+  -> ..=Min&{by: :(totalFuel:), select: :(totalFuel:)} !
+end solutionPart1
+
+templates crabFuel
+  $ -> abs -> $ * ($+1) ~/ 2 !
+end crabFuel
+
+source solutionPart2
+  ($aligns join $input) -> $({id:, align:, fuel: §.align - §.h -> crabFuel})
+  -> $(collect {totalFuel: Sum&{of: :(fuel:)}} by $({align:}))...
+  -> ..=Min&{by: :(totalFuel:), select: :(totalFuel:)} !
+end solutionPart2
+
+test 'part2'
+  modify program
+    def input: {| '16,1,2,0,4,2,7,1,2,14' -> pos |};
+  end program
+  assert $solutionPart2 <=168> ''
+end 'part2'
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> 'Tailspin
+$;
+' -> !OUT::write
