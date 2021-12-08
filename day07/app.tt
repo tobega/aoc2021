@@ -1,38 +1,55 @@
 composer pos
-  @: 0;
-  <h>+
-  rule h: {id: $@, h: <"1"> (<','>?)} (@: $@ + 1;)
+  @: [0..9999 -> 0];
+  (<h>+) $@
+  rule h: (<INT> -> @($+1): $@($+1) + 1;) (<','>?)
 end pos
 
-def input: {| $IN::lines -> pos|};
-def min: $input... -> ..=Min&{by: :(h:), select: :(h:)};
-def max: $input... -> ..=Max&{by: :(h:), select: :(h:)};
-def aligns: {| $min..$max -> {align: $} |};
+def input: $IN::lines -> pos;
+def noofcrabs: $input... -> ..=Sum&{of: :()};
 
 templates abs
-  when <0"1"..> do $!
-  otherwise -$!
+  when <0..> do $!
+  otherwise -$ !
 end abs
 
 source solutionPart1
-  ($aligns join $input) -> $({id:, align:, fuel: §.align - §.h -> abs})
-  -> $(collect {totalFuel: Sum&{of: :(fuel:)}} by $({align:}))...
-  -> ..=Min&{by: :(totalFuel:), select: :(totalFuel:)} !
+  def half: $noofcrabs ~/ 2;
+  @: 0;
+  1 -> #
+  when <?($@ <..~$half>)> do
+    @: $@ + $input($);
+    $ + 1 -> #
+  otherwise
+    def median: $ - 2;
+    $median -> fuelToAlign&{fuelFunction: abs} !
 end solutionPart1
+
+test 'part1'
+  modify program
+    def input: '16,1,2,0,4,2,7,1,2,14' -> pos;
+  end program
+  assert $solutionPart1 <=37> ''
+end 'part1'
 
 templates crabFuel
   $ -> abs -> $ * ($+1) ~/ 2 !
 end crabFuel
 
+templates fuelToAlign&{fuelFunction:}
+  def alignment: $;
+  $input-> \[i]( $ * ($i - 1 - $alignment -> fuelFunction) ! \) ... -> ..=Sum&{of: :()} !
+end fuelToAlign
+
 source solutionPart2
-  ($aligns join $input) -> $({id:, align:, fuel: §.align - §.h -> crabFuel})
-  -> $(collect {totalFuel: Sum&{of: :(fuel:)}} by $({align:}))...
-  -> ..=Min&{by: :(totalFuel:), select: :(totalFuel:)} !
+  def sumofpos: $input -> \[i]($ * ($i-1) !\)... -> ..=Sum&{of: :()};
+  def meanFloor: $sumofpos ~/ $noofcrabs;
+  [$meanFloor..$meanFloor+1 -> fuelToAlign&{fuelFunction: crabFuel}] ... -> ..=Min&{by: :(), select: :()} !
+  <~=0> @: $@ + 1;
 end solutionPart2
 
 test 'part2'
   modify program
-    def input: {| '16,1,2,0,4,2,7,1,2,14' -> pos |};
+    def input: '16,1,2,0,4,2,7,1,2,14' -> pos;
   end program
   assert $solutionPart2 <=168> ''
 end 'part2'
