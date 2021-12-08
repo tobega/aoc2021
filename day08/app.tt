@@ -1,0 +1,56 @@
+source solutionPart1
+  composer tells
+    (<~='|'> <='|'>) <tell|other>=4
+    rule tell: (<WS>) <'\w{2}\b'|'\w{3}\b'|'\w{4}\b'|'\w{7}\b'> -> 1
+    rule other: (<WS> <~WS>)
+  end tells
+  @: 0;
+  $IN::lines -> tells -> @: $@ + $;
+  $@!
+end solutionPart1
+
+composer toInt
+  (<='0'>*) <INT>
+end toInt
+
+source solutionPart2
+  templates identifyDigits
+    def parsed: $;
+    {|  {digit: 1, wires: $parsed.one},
+        {digit: 7, wires: $parsed.seven},
+        {digit: 4, wires: $parsed.four},
+        {digit: 8, wires: $parsed.eight},
+        $parsed.s6... -> \(
+          when <?(($parsed.one notMatching $) -> $::count <~=0>)> do {digit: 6, wires: $} !
+          when <?(($parsed.four notMatching $) -> $::count <~=0>)> do {digit: 0, wires: $} !
+          otherwise @identifyDigits: $; {digit: 9, wires: $} !
+        \),
+        $parsed.s5... -> \(
+          when <?(($ notMatching $@identifyDigits) -> $::count <~=0>)> do {digit: 2, wires: $} !
+          when <?(($parsed.one notMatching $) -> $::count <~=0>)> do {digit: 5, wires: $} !
+          otherwise {digit: 3, wires: $} !
+        \)
+     |} !
+  end identifyDigits
+  composer signals
+    @: {s5:[],s6:[]};
+    (<pattern>=10 <='|'>) (@: $@ -> identifyDigits;) [<digit>=4]
+    rule pattern: <s2|s3|s4|s7|s5|s6>
+    rule s2: (<'\w{2}\b'> -> ..|@: (one:{|$... -> {wire: $}|});) (<WS>)
+    rule s3: (<'\w{3}\b'> -> ..|@: (seven:{|$... -> {wire: $}|});) (<WS>)
+    rule s4: (<'\w{4}\b'> -> ..|@: (four:{|$... -> {wire: $}|});) (<WS>)
+    rule s7: (<'\w{7}\b'> -> ..|@: (eight:{|$... -> {wire: $}|});) (<WS>)
+    rule s5: (<'\w{5}\b'> -> ..|@.s5: {|$... -> {wire: $}|};) (<WS>)
+    rule s6: (<'\w{6}\b'> -> ..|@.s6: {|$... -> {wire: $}|};) (<WS>)
+    rule digit: (<WS>) <~WS> -> ({| {wires: {|$... -> {wire: $}|}} |} join $@)... -> $.digit
+  end signals
+  $IN::lines -> signals -> '$...;' -> toInt -> ..=Sum&{of: :()} !
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> 'Tailspin
+$;
+' -> !OUT::write
