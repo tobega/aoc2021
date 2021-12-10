@@ -29,7 +29,7 @@ let solutionPart1 =
           | SyntaxError(score) -> score)
   |> Seq.sum
 
-let autoCompleteScore syntaxCheck =
+let autoCompleteScore stack =
   let rec completion prefix score =
     match prefix with
     | [] -> score
@@ -38,16 +38,14 @@ let autoCompleteScore syntaxCheck =
     | '{' :: rest -> completion rest (5m*score+3m)
     | '<' :: rest -> completion rest (5m*score+4m)
     | _ -> failwith "impossible"
-  match syntaxCheck with
-  | Incomplete(prefix) -> completion prefix 0m
-  | _ -> failwith "impossible"
+  completion stack 0m
 
 
 let solutionPart2 =
   System.IO.File.ReadLines("input.txt") |> Seq.map syntaxErrorScore
-  |> Seq.filter (function
-                | SyntaxError(_) -> false
-                | Incomplete(_) -> true)
+  |> Seq.choose (function
+                | SyntaxError(_) -> None
+                | Incomplete(stack) -> Some(stack))
   |> Seq.map autoCompleteScore
   |> Seq.sort
   |> Seq.toArray
