@@ -14,14 +14,13 @@ start() ->
 
 getSolutionPart1(Input) ->
   Octopi = setUpOctopi(Input),
-  step(100, Octopi, 0).
+  io:fwrite("~p~n", [step(100, Octopi, 0)]).
 
-step(0, _, TotalFlashes) ->
-  io:fwrite("~p~n", [TotalFlashes]);
+step(0, _, TotalFlashes) -> TotalFlashes;
 step(N, Octopi, TotalFlashes) ->
   broadcast(Octopi, reset),
   broadcast(Octopi, {quantum, self()}),
-  awaitQuiescence(array:size(Octopi) * array:size(array:get(0, Octopi)), N, Octopi, TotalFlashes).
+  awaitQuiescence(100, N, Octopi, TotalFlashes).
 
 awaitQuiescence(0, N, Octopi, TotalFlashes) ->
   step(N-1, Octopi, TotalFlashes);
@@ -30,7 +29,18 @@ awaitQuiescence(Active, N, Octopi, TotalFlashes) ->
     {quiescent, TriggeredFlashes} -> awaitQuiescence(Active - 1, N, Octopi, TotalFlashes + TriggeredFlashes)
   end.
 
-getSolutionPart2(Input) -> io:fwrite("~p~n", [0]).
+getSolutionPart2(Input) ->
+  Octopi = setUpOctopi(Input),
+  io:fwrite("~p~n", [allFlash(Octopi)]).
+
+allFlash(Octopi) ->
+  allFlash(Octopi, 0).
+allFlash(Octopi, Step) ->
+  Flashed = step(1, Octopi, 0),
+  if
+    Flashed == 100 -> Step + 1;
+    true -> allFlash(Octopi, Step + 1)
+  end.
 
 readlines(Filename) ->
     {ok, Blob} = file:read_file(Filename),
