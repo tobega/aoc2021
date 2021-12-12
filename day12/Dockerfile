@@ -1,9 +1,13 @@
-# bal build can instead build docker images directly from the commandline
-FROM ballerina/ballerina
-RUN mkdir /home/ballerina/app
-WORKDIR /home/ballerina/app
-COPY Ballerina.toml .
-COPY ./*.bal .
-COPY input.txt .
-RUN bal build
-CMD ["bal", "run", "target/bin/app.jar"]
+FROM dart:stable AS build
+
+# Resolve dependencies.
+COPY pubspec.* ./
+RUN dart pub get
+
+# Copy app source code and AOT compile it.
+COPY . .
+# Ensure packages are still up-to-date if anything has changed
+RUN dart pub get --offline
+RUN dart compile exe app.dart -o app
+
+CMD ["./app"]
