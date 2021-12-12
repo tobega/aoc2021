@@ -50,7 +50,6 @@ int solutionPart2(_Cave start) {
 }
 
 void main() async {
-  print('Dart');
   _Cave start = await parseInput("input.txt");
   String part = Platform.environment["part"] ?? "part1";
   if (part == "part1") {
