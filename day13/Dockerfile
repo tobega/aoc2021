@@ -10,8 +10,4 @@ COPY . .
 RUN dart pub get --offline
 RUN dart compile exe app.dart -o app
 
-FROM alpine
-COPY --from=build /root/app .
-COPY input.txt .
-
 CMD ["./app"]
