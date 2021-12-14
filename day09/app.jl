@@ -1,6 +1,5 @@
+input = vcat([permutedims(parse.(Int8, l)) for l in collect.(readlines("input.txt"))]...)
 include("solutions.jl")
-
-input = vcat([permutedims(parse.(Int, l)) for l in collect.(readlines("input.txt"))]...)
 
 println("Julia")
 
