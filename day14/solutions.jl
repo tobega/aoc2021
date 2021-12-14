@@ -1,44 +1,40 @@
 
-io = open(input)
-initial = collect(readline(io))
-pairs = Dict()
-for p in zip(initial[1:end-1], initial[2:end])
-  pairs[p] = get(pairs, p, 0) + 1
+polymer, _, rules = open(input) do io
+  collect(readline(io)), readline(io),
+  Dict([(collect(pair)...,)=>insert[1] for (pair,insert) in [split(l," -> ") for l in readlines(io)]])
 end
-readline(io)
-rules = Dict([(collect(s[1])...,)=>s[2][1] for s in [split(l," -> ") for l in readlines(io)]])
 
-function applyrules(polymer)
-  result = Dict()
-  for p in keys(rules)
-    (count = get(polymer, p, 0)) > 0 || continue
-    i = rules[p]
-    p1 = (p[1], i)
-    result[p1] = get(result, p1, 0) + count
-    p2 = (i, p[2])
-    result[p2] = get(result, p2, 0) + count
+function applyrules(pairs)
+  result = Dict([(k,v) for (k,v) in pairs if !haskey(rules, k)])
+  for ((a,b), i) in rules
+    (count = get(pairs, (a,b), 0)) > 0 || continue
+    result[(a, i)] = get(result, (a, i), 0) + count
+    result[(i, b)] = get(result, (i, b), 0) + count
   end
   result
 end
 
-function diffcount(polymer)
+function diffcount(pairs)
   elements = Dict()
-  for (k,v) in polymer
-    elements[k[1]] = get(elements, k[1], 0) + v
-    elements[k[2]] = get(elements, k[2], 0) + v
+  for ((a,b),v) in pairs
+    elements[a] = get(elements, a, 0) + v
+    elements[b] = get(elements, b, 0) + v
   end
-  elements[initial[1]] += 1
-  elements[initial[end]] += 1
-  occurrences = sort([v for v in values(elements)])
-  (occurrences[end] - occurrences[1])/2
+  elements[first(polymer)] += 1
+  elements[last(polymer)] += 1
+  (b,t) = extrema(values(elements))
+  (t - b) ÷ 2
 end
 
 function solutionpart1(times=10)
-  polymer = pairs
-  for _ in 1:times
-    polymer = applyrules(polymer)
+  pairs = Dict()
+  for p in zip(polymer[1:end-1], polymer[2:end])
+    pairs[p] = get(pairs, p, 0) + 1
   end
-  diffcount(polymer)
+  for _ in 1:times
+    pairs = applyrules(pairs)
+  end
+  diffcount(pairs)
 end
 
 function solutionpart2()
