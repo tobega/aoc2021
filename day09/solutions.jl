@@ -3,14 +3,8 @@ Ifirst, Ilast = first(R), last(R)
 I1 = oneunit(Ifirst)
 
 function solutionpart1()
-  sum = 0
-  for I in R
-    # strictly not correct, this checks diagonals as well
-    if input[I] == min(input[max(Ifirst, I-I1):min(Ilast, I+I1)]...)
-      sum += input[I] + 1
-    end
-  end
-  sum
+  # strictly not correct, this checks diagonals as well
+  sum([input[I]+1 for I in R if input[I] == min(input[max(Ifirst, I-I1):min(Ilast, I+I1)]...)])
 end
 
 function solutionpart2()
