@@ -10,10 +10,11 @@ end
 function solutionpart2()
   ids = reshape(collect([I for I in R]), size(input)...)
   function getid(I)
-    while I != ids[I]
-      I = ids[I]
+    J = ids[I]
+    if I != J
+      ids[I] = getid(J)
     end
-    I
+    ids[I]
   end
   
   for v in 1:size(input)[1]
