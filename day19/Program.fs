@@ -3,83 +3,97 @@
 open System
 open System.Text.RegularExpressions
 
-type Scanner = Set<int*int*int>
+type Point = int*int*int
+type Beacons = Set<Point>
+type Scanner = Point * Beacons
 
 let translate scanner (dx, dy, dz) = Set (seq { for (x, y, z) in scanner -> (x+dx, y+dy, z+dz)})
 
 let flip scanner (mx, my, mz) = Set (seq { for (x, y, z) in scanner -> (x*mx, y*my, z*mz)})
 
-let roll scanner = Set (seq { for (x, y, z) in Set.toSeq scanner -> (y, z, x)})
+let faceY scanner = Set (seq { for (x, y, z) in Set.toSeq scanner -> (y, -x, z)})
+
+let faceZ scanner = Set (seq { for (x, y, z) in Set.toSeq scanner -> (z, y, -x)})
+
+let roll scanner = Set (seq { for (x, y, z) in Set.toSeq scanner -> (x, z, -y)})
 
 let matching origin scanner = (Set.intersect origin scanner |> Set.count) >= 12
-
-let flips = [ for mx in [1;-1] do for my in [1;-1] do for mz in [1;-1] do mx,my,mz ]
 
 let alignments origin scanner =
   [for (ox, oy, oz) in (Set.toSeq origin |> Seq.skip 11) do for (sx, sy, sz) in (Set.toSeq scanner |> Seq.skip 11) -> (ox-sx, oy-sy, oz-sz)]
 
-let align origin scanner =
+let align (origin: Beacons) scanner =
   let rec tryAlign aligns = 
     match aligns with
     | [] -> None
     | a :: rest ->
       let aligned = translate scanner a
       if matching origin aligned then
-        Some(aligned)
+        Some(a, aligned)
       else
         tryAlign rest
   tryAlign (alignments origin scanner)
 
-let findFlip aligned (scanner: Scanner) =
-  let rec tryFlip origin flips =
-    match flips with
-    | [] -> None
-    | f :: rest ->
-      match align origin (flip scanner f) with
+let findRoll (aligned: List<Scanner>) (scanner: Beacons) =
+  let rec tryRoll (origin: Beacons) =
+    match align origin scanner with
+    | Some(rolled) -> Some(rolled)
+    | None ->
+      let roll1 = roll scanner
+      match align origin roll1 with
       | Some(flipped) -> Some(flipped)
-      | None -> tryFlip origin rest
-  let rec tryOrigin remaining =
+      | None ->
+        let roll2 = roll roll1
+        match align origin roll2 with
+        | Some(flipped) -> Some(flipped)
+        | None -> align origin (roll roll2)
+  let rec tryOrigin (remaining: List<Scanner>) =
     match remaining with
     | [] -> None
     | origin :: rest ->
-      match tryFlip origin flips with
-      | Some(flipped) -> Some(flipped)
+      match tryRoll (snd origin) with
+      | Some(rolled) -> Some(rolled)
       | None -> tryOrigin rest
   tryOrigin aligned
 
-let findOrientation aligned (next: Scanner) =
+let findFlip (aligned: List<Scanner>) (next: Beacons) =
+  match (findRoll aligned next) with
+  | Some(scanner) -> Some(scanner)
+  | None -> findRoll aligned (flip next (-1, -1, 1))
+
+let findFacing (aligned: List<Scanner>) (next: Beacons) =
   match (findFlip aligned next) with
   | Some(scanner) -> Some(scanner)
   | None ->
-    let rolled = roll next
-    match findFlip aligned rolled with
+    let toY = faceY next
+    match findFlip aligned toY with
     | Some(scanner) -> Some(scanner)
-    | None ->
-      let rollrolled = roll rolled
-      match findFlip aligned rollrolled with
-      | Some(scanner) -> Some(scanner)
-      | None ->
-        let tangled = Set (seq { for (x, y, z) in Set.toSeq next -> (y, x, z)})
-        findFlip aligned tangled
+    | None -> findFlip aligned (faceZ toY)
 
-let consolidate ((origin :: scanners):List<Scanner>) =
-  let rec alignAll aligned (unaligned: (List<Scanner> * List<Scanner>)) =
+let consolidate ((origin :: scanners):List<Beacons>) =
+  let rec alignAll (aligned: List<Scanner>) (unaligned: (List<Beacons> * List<Beacons>)) =
     match unaligned with
     | ([], []) -> aligned
     | (missed, []) -> alignAll aligned ([], missed)
     | (missed, next :: rest) ->
-      match (findOrientation aligned next) with
+      match (findFacing aligned next) with
       | Some(oriented) -> alignAll (oriented :: aligned) (missed, rest)
       | None -> alignAll aligned (next :: missed, rest)
-  alignAll [origin] ([], scanners)
+  alignAll [(0,0,0), origin] ([], scanners)
 
 let solutionPart1 input =
-  let beacons = consolidate input |> List.reduce Set.union
-  for b in beacons do printfn "%A " b
-  beacons |> Set.count
+  consolidate input |> List.map snd |> List.reduce Set.union |> Set.count
+
+let rec pairs l = seq {  
+    match l with 
+    | h::t -> for e in t do yield h, e
+              yield! pairs t
+    | _ -> () } 
+
+let manhattanDistance ((x1,y1,z1),(x2,y2,z2)) = (abs (x1 - x2)) + (abs (y1 - y2)) + (abs (z1 - z2))
 
 let solutionPart2 input =
-  0
+  consolidate input |> List.map fst |> pairs |> Seq.map manhattanDistance |> Seq.max
 
 let (|Beacon|_|) line =
   let m = Regex("(-?\d+),(-?\d+),(-?\d+)").Match(line)
@@ -90,7 +104,7 @@ let (|Beacon|_|) line =
 
 let parseScanners (lines: seq<string>) =
   let mutable scanners = []
-  let mutable currentScanner:Scanner = Set.empty
+  let mutable currentScanner:Beacons = Set.empty
   for line in lines do
     match line with
     | "" -> scanners <- currentScanner :: scanners; currentScanner <- Set.empty
@@ -101,7 +115,7 @@ let parseScanners (lines: seq<string>) =
 
 [<EntryPoint>]
 let main argv =
-    let input = (System.IO.File.ReadLines("input_test.txt")
+    let input = (System.IO.File.ReadLines("input.txt")
         |> parseScanners)
 
     printfn "%s" (
