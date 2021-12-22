@@ -4,64 +4,122 @@ open System
 open System.Text.RegularExpressions
 
 type Point = int*int*int
-type Beacons = Set<Point>
+type Beacons = List<Point>
 type Scanner = Point * Beacons
 
-let translate scanner (dx, dy, dz) = Set (seq { for (x, y, z) in scanner -> (x+dx, y+dy, z+dz)})
+let translate (dx, dy, dz) scanner = scanner |> List.map (fun (x, y, z) -> (x+dx, y+dy, z+dz))
 
-let flip scanner (mx, my, mz) = Set (seq { for (x, y, z) in scanner -> (x*mx, y*my, z*mz)})
+let flip beacons =
+  let rec flipX old flipped = match old with | [] -> flipped | (x,y,z) :: rest -> flipX rest ((-x,-y,z) :: flipped)
+  flipX beacons []
 
-let faceY scanner = Set (seq { for (x, y, z) in Set.toSeq scanner -> (y, -x, z)})
+let sortx = List.sortBy (fun (x,_,_) -> x)
 
-let faceZ scanner = Set (seq { for (x, y, z) in Set.toSeq scanner -> (z, y, -x)})
+let faceY scanner = scanner |> List.map (fun (x, y, z) -> (y, -x, z)) |> sortx
 
-let roll scanner = Set (seq { for (x, y, z) in Set.toSeq scanner -> (x, z, -y)})
+let faceZ scanner = scanner |> List.map (fun (x, y, z) -> (z, y, -x)) |> sortx
 
-let matching origin scanner = (Set.intersect origin scanner |> Set.count) >= 12
+let rec roll n (scanner: Beacons) =
+  match n with
+  | 0 -> scanner
+  | _ -> roll (n-1) (List.map (fun (x, y, z) -> (x, z, -y)) scanner)
 
-let alignments origin scanner =
-  [for (ox, oy, oz) in (Set.toSeq origin |> Seq.skip 11) do for (sx, sy, sz) in (Set.toSeq scanner |> Seq.skip 11) -> (ox-sx, oy-sy, oz-sz)]
-
-let align (origin: Beacons) scanner =
-  let rec tryAlign aligns = 
-    match aligns with
-    | [] -> None
-    | a :: rest ->
-      let aligned = translate scanner a
-      if matching origin aligned then
-        Some(a, aligned)
+let rec next n a sa b sb pairs = seq {
+  if n = 0 then
+    yield pairs
+  else if sa < 0 || sb < 0 then
+    ()
+  else 
+    let (xa, _, _) = List.head a
+    let (xb, _, _) = List.head b
+    let ((pa, _, _), (pb, _, _)) = List.head pairs
+    if (xa - xb) = (pa - pb) then
+      // if there are equal values, we need to select each in turn
+      yield! a |> List.toSeq |> Seq.filter (fun (x,_,_) -> x = xa)
+      |> Seq.map (fun beacon -> next (n-1) (a |> List.filter (fun b -> b <> beacon)) sa (List.tail b) sb ((beacon, List.head b) :: pairs))
+      |> Seq.concat
+      // and for b
+      yield! b |> List.toSeq |> Seq.filter (fun (x,_,_) -> x = xb)
+      |> Seq.map (fun beacon -> next (n-1) (List.tail a) sa (b |> List.filter (fun b -> b <> beacon)) sb ((List.head a, beacon) :: pairs))
+      |> Seq.concat      
+    else if xa > pa || xb > pb then
+      if (xa - xb) > (pa - pb) then
+        yield! next n a sa (List.tail b) (sb - 1) pairs
       else
-        tryAlign rest
-  tryAlign (alignments origin scanner)
+        yield! next n (List.tail a) (sa - 1) b sb pairs
+    else
+      if (xa - xb) < (pa - pb) then
+        yield! next n a sa (List.tail b) (sb - 1) pairs
+      else
+        yield! next n (List.tail a) (sa - 1) b sb pairs
+}
 
-let findRoll (aligned: List<Scanner>) (scanner: Beacons) =
-  let rec tryRoll (origin: Beacons) =
-    match align origin scanner with
-    | Some(rolled) -> Some(rolled)
-    | None ->
-      let roll1 = roll scanner
-      match align origin roll1 with
-      | Some(flipped) -> Some(flipped)
-      | None ->
-        let roll2 = roll roll1
-        match align origin roll2 with
-        | Some(flipped) -> Some(flipped)
-        | None -> align origin (roll roll2)
-  let rec tryOrigin (remaining: List<Scanner>) =
+let pick12 origin scanner =
+  let rec allO no o origin b sb = seq {
+    match origin with
+    | [] -> yield! next 11 (List.tail o) (no - 12) (List.tail b) sb [(List.head o, List.head b)]
+    | head :: tail ->
+      yield! next 11 (List.tail o) (no - 12) (List.tail b) sb [(List.head o, List.head b)]
+      yield! allO (no+1) (head :: o) tail b sb
+  }
+  let rec allS o origin ns s scanner = seq {
+    match scanner with
+    | [] -> yield! allO 12 o origin s (ns - 12)
+    | head :: tail ->
+      yield! allO 12 o origin s (ns - 12)
+      yield! allS o origin (ns+1) (head :: s) tail
+  }
+  let rec doPick n o origin s scanner = seq {
+    if n < 12 then
+      yield! doPick (n+1) ((List.head origin) :: o) (List.tail origin) ((List.head scanner) :: s) (List.tail scanner)
+    else
+      yield! allS o origin 12 s scanner
+  }
+  doPick 0 [] origin [] scanner
+  
+let equidistance o12 s12 =
+  let diffs = Seq.zip o12 s12 |> Seq.map (fun ((xo, yo, zo), (xs, ys, zs)) -> (xo-xs, yo-ys, zo-zs))
+  let diff = Seq.head diffs
+  if (Seq.forall ((=) diff) (Seq.tail diffs)) then
+    Some(diff)
+  else
+    None
+
+let alignX (aligned: List<Scanner>) (scanner: Beacons): option<Scanner> =
+  let rec tryRoll r (o12: Beacons) (s12: Beacons) =
+    let mutable rolled = s12
+    if r = 4 then
+      None
+    else
+      if r > 0 then do
+        rolled <- (roll 1 rolled)
+      match equidistance o12 rolled with
+      | Some(diff) -> Some(r, diff)
+      | None -> tryRoll (r+1) o12 rolled
+      
+  let rec findAlignment alignments =
+    if Seq.isEmpty alignments then
+      None
+    else
+      match tryRoll 0 (Seq.head alignments |> Seq.map fst |> Seq.toList) (Seq.head alignments |> Seq.map snd |> Seq.toList) with
+      | None -> findAlignment (Seq.tail alignments)
+      | found -> found
+  
+  let rec tryOrigin (remaining: List<Scanner>): option<Scanner> =
     match remaining with
     | [] -> None
     | origin :: rest ->
-      match tryRoll (snd origin) with
-      | Some(rolled) -> Some(rolled)
+      match findAlignment (pick12 (snd origin) scanner) with
+      | Some(rolls, offset) -> Some(offset, scanner |> roll rolls |> translate offset)
       | None -> tryOrigin rest
   tryOrigin aligned
 
 let findFlip (aligned: List<Scanner>) (next: Beacons) =
-  match (findRoll aligned next) with
+  match (alignX aligned next) with
   | Some(scanner) -> Some(scanner)
-  | None -> findRoll aligned (flip next (-1, -1, 1))
+  | None -> alignX aligned (flip next)
 
-let findFacing (aligned: List<Scanner>) (next: Beacons) =
+let findFacing (aligned: List<Scanner>) (next: Beacons): option<Scanner> =
   match (findFlip aligned next) with
   | Some(scanner) -> Some(scanner)
   | None ->
@@ -70,19 +128,22 @@ let findFacing (aligned: List<Scanner>) (next: Beacons) =
     | Some(scanner) -> Some(scanner)
     | None -> findFlip aligned (faceZ toY)
 
-let consolidate ((origin :: scanners):List<Beacons>) =
-  let rec alignAll (aligned: List<Scanner>) (unaligned: (List<Beacons> * List<Beacons>)) =
+let consolidate (beacons:List<Beacons>) =
+  let rec alignAll (aligned: List<Scanner>) (unaligned: (List<Beacons> * List<Beacons>)) prev_missed =
     match unaligned with
     | ([], []) -> aligned
-    | (missed, []) -> alignAll aligned ([], missed)
+    | (missed, []) when (List.length missed) = prev_missed -> failwith "cannot match"
+    | (missed, []) -> alignAll aligned ([], missed) (List.length missed)
     | (missed, next :: rest) ->
       match (findFacing aligned next) with
-      | Some(oriented) -> alignAll (oriented :: aligned) (missed, rest)
-      | None -> alignAll aligned (next :: missed, rest)
-  alignAll [(0,0,0), origin] ([], scanners)
+      | Some(oriented) -> alignAll (oriented :: aligned) (missed, rest) prev_missed
+      | None -> alignAll aligned (next :: missed, rest) prev_missed
+  match beacons with
+  | origin :: scanners -> alignAll [(0,0,0), origin] ([], scanners) 0
+  | _ -> failwith "empty list of beacons"
 
 let solutionPart1 input =
-  consolidate input |> List.map snd |> List.reduce Set.union |> Set.count
+  consolidate input |> List.map snd |> List.map Set |> List.reduce Set.union |> Set.count
 
 let rec pairs l = seq {  
     match l with 
@@ -104,13 +165,13 @@ let (|Beacon|_|) line =
 
 let parseScanners (lines: seq<string>) =
   let mutable scanners = []
-  let mutable currentScanner:Beacons = Set.empty
+  let mutable currentScanner:Beacons = []
   for line in lines do
     match line with
-    | "" -> scanners <- currentScanner :: scanners; currentScanner <- Set.empty
-    | Beacon (x, y, z) -> currentScanner <- currentScanner.Add (x, y, z)
+    | "" -> scanners <- (sortx currentScanner) :: scanners; currentScanner <- []
+    | Beacon (x, y, z) -> currentScanner <- (x, y, z) :: currentScanner
     | _ -> ()
-  currentScanner :: scanners
+  (sortx currentScanner) :: scanners
 
 
 [<EntryPoint>]
