@@ -10,6 +10,14 @@ class Range {
   int count() {
     return max - min + 1;
   }
+
+  String toString() {
+    return "$min..$max";
+  }
+
+  Range copy() {
+    return Range(min, max);
+  }
 }
 
 class Dimension {
@@ -32,7 +40,7 @@ class Dimension {
 
   void addToChildren(Iterable<Range> cubes) {
     if (cubes.isEmpty) return;
-    Range top = cubes.first;
+    Range top = cubes.first.copy();
     List<Dimension> result = [];
     for (var child in children) {
       if (top.max < top.min || top.min > child.range.max) {
@@ -45,18 +53,26 @@ class Dimension {
             cubes.length > 1 ? [Dimension.ofCubes(cubes.skip(1))] : []));
         top.min = right + 1;
       }
+      if (child.range.min < top.min) {
+        var right = min(child.range.max, top.min - 1);
+        result.add(Dimension(Range(child.range.min, right), child.children));
+        if (right < child.range.max)
+          child = Dimension(Range(right + 1, child.range.max), child.children);
+      }
       if (top.max >= child.range.min) {
         var right = min(child.range.max, top.max);
         var leftSplit =
             Dimension(Range(child.range.min, right), child.children);
         leftSplit.addToChildren(cubes.skip(1));
         result.add(leftSplit);
-        if (child.range.max > right + 1) {
-          result.add(
-              Dimension(Range(right + 1, child.range.max), child.children));
+        if (child.range.max >= right + 1) {
+          var rightSplit =
+              Dimension(Range(right + 1, child.range.max), child.children);
+          result.add(rightSplit);
         }
         top.min = right + 1;
       }
+      if (child.range.min > top.max) result.add(child);
     }
     if (top.max >= top.min) {
       var child = Dimension(
@@ -68,7 +84,7 @@ class Dimension {
 
   void removeFromChildren(Iterable<Range> cubes) {
     if (cubes.isEmpty) return;
-    Range top = cubes.first;
+    Range top = cubes.first.copy();
     List<Dimension> result = [];
     for (var child in children) {
       if (top.max < top.min || top.min > child.range.max) {
@@ -78,20 +94,38 @@ class Dimension {
       if (top.min < child.range.min) {
         top.min = child.range.min;
       }
+      if (child.range.min < top.min) {
+        var right = min(child.range.max, top.min - 1);
+        result.add(Dimension(Range(child.range.min, right), child.children));
+        if (right < child.range.max)
+          child = Dimension(Range(right + 1, child.range.max), child.children);
+      }
       if (top.max >= child.range.min) {
         var right = min(child.range.max, top.max);
         var leftSplit =
             Dimension(Range(child.range.min, right), child.children);
         leftSplit.removeFromChildren(cubes.skip(1));
         if (!leftSplit.children.isEmpty) result.add(leftSplit);
-        if (child.range.max > right + 1) {
-          result.add(
-              Dimension(Range(right + 1, child.range.max), child.children));
+        if (child.range.max >= right + 1) {
+          var rightSplit =
+              Dimension(Range(right + 1, child.range.max), child.children);
+          result.add(rightSplit);
         }
         top.min = right + 1;
       }
+      if (child.range.min > top.max) result.add(child);
     }
     children = result;
+  }
+
+  List<String> show() {
+    return children.isEmpty
+        ? ["$range"]
+        : children.expand((e) => e.show()).map((e) => "$range:$e").toList();
+  }
+
+  String toString() {
+    return show().toString();
   }
 }
 
@@ -115,7 +149,10 @@ class CubeInstruction {
   }
 
   bool isInitialization() {
-    return cubes.first.min >= -50 && cubes.first.min <= 50;
+    return cubes.first.min >= -50 &&
+        cubes.first.min <= 50 &&
+        cubes.first.max >= -50 &&
+        cubes.first.max <= 50;
   }
 
   void apply(Dimension universe) {
@@ -124,7 +161,6 @@ class CubeInstruction {
     } else {
       universe.removeFromChildren(cubes);
     }
-    print(universe.count());
   }
 }
 
@@ -137,11 +173,13 @@ int solutionPart1(List<CubeInstruction> input) {
 }
 
 int solutionPart2(List<CubeInstruction> input) {
-  return 0;
+  var universe = Dimension(Range(0, 0), []);
+  input.forEach((instruction) => instruction.apply(universe));
+  return universe.count();
 }
 
 void main() async {
-  List<CubeInstruction> input = await parseInput("input_test.txt");
+  List<CubeInstruction> input = await parseInput("input.txt");
   String part = Platform.environment["part"] ?? "part1";
   if (part == "part1") {
     print(solutionPart1(input));
