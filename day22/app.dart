@@ -38,20 +38,14 @@ class Dimension {
             : children.fold(0, (s, child) => s + child.count()));
   }
 
-  void addToChildren(Iterable<Range> cubes) {
+  void applyState(Iterable<Range> cubes, bool turnOn) {
     if (cubes.isEmpty) return;
     Range top = cubes.first.copy();
     List<Dimension> result = [];
     for (var child in children) {
-      if (top.max < top.min || top.min > child.range.max) {
+      if (top.min > child.range.max || child.range.min > top.max) {
         result.add(child);
         continue;
-      }
-      if (top.min < child.range.min) {
-        int right = min(top.max, child.range.min - 1);
-        result.add(Dimension(Range(top.min, right),
-            cubes.length > 1 ? [Dimension.ofCubes(cubes.skip(1))] : []));
-        top.min = right + 1;
       }
       if (child.range.min < top.min) {
         var right = min(child.range.max, top.min - 1);
@@ -63,57 +57,19 @@ class Dimension {
         var right = min(child.range.max, top.max);
         var leftSplit =
             Dimension(Range(child.range.min, right), child.children);
-        leftSplit.addToChildren(cubes.skip(1));
-        result.add(leftSplit);
-        if (child.range.max >= right + 1) {
-          var rightSplit =
-              Dimension(Range(right + 1, child.range.max), child.children);
-          result.add(rightSplit);
-        }
-        top.min = right + 1;
-      }
-      if (child.range.min > top.max) result.add(child);
-    }
-    if (top.max >= top.min) {
-      var child = Dimension(
-          top, cubes.length > 1 ? [Dimension.ofCubes(cubes.skip(1))] : []);
-      result.add(child);
-    }
-    children = result;
-  }
-
-  void removeFromChildren(Iterable<Range> cubes) {
-    if (cubes.isEmpty) return;
-    Range top = cubes.first.copy();
-    List<Dimension> result = [];
-    for (var child in children) {
-      if (top.max < top.min || top.min > child.range.max) {
-        result.add(child);
-        continue;
-      }
-      if (top.min < child.range.min) {
-        top.min = child.range.min;
-      }
-      if (child.range.min < top.min) {
-        var right = min(child.range.max, top.min - 1);
-        result.add(Dimension(Range(child.range.min, right), child.children));
-        if (right < child.range.max)
-          child = Dimension(Range(right + 1, child.range.max), child.children);
-      }
-      if (top.max >= child.range.min) {
-        var right = min(child.range.max, top.max);
-        var leftSplit =
-            Dimension(Range(child.range.min, right), child.children);
-        leftSplit.removeFromChildren(cubes.skip(1));
+        leftSplit.applyState(cubes.skip(1), false);
         if (!leftSplit.children.isEmpty) result.add(leftSplit);
         if (child.range.max >= right + 1) {
           var rightSplit =
               Dimension(Range(right + 1, child.range.max), child.children);
           result.add(rightSplit);
         }
-        top.min = right + 1;
       }
-      if (child.range.min > top.max) result.add(child);
+    }
+    if (turnOn) {
+      var child = Dimension(
+          top, cubes.length > 1 ? [Dimension.ofCubes(cubes.skip(1))] : []);
+      result.add(child);
     }
     children = result;
   }
@@ -156,11 +112,7 @@ class CubeInstruction {
   }
 
   void apply(Dimension universe) {
-    if (state == "on") {
-      universe.addToChildren(cubes);
-    } else {
-      universe.removeFromChildren(cubes);
-    }
+    universe.applyState(cubes, state == "on");
   }
 }
 
