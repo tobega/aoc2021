@@ -34,6 +34,11 @@ public class Main {
         Scanner scanner = new Scanner(Files.newBufferedReader(Path.of("input.txt")));
         List<DigitCalculator> digitCalculators = scanner.useDelimiter("inp w\n").tokens()
             .map(DigitCalculator::parse).collect(Collectors.toList());
+        long maxZ = (long) Math.pow(26, 8);
+        for (int i = 0; i < digitCalculators.size(); i++) {
+            if (i > 6) maxZ /= 26;
+            digitCalculators.get(i).setMaxZ(maxZ);
+        }
         if ("part2".equals(System.getenv("part"))) {
             new Main(digitCalculators).part2();
         } else {

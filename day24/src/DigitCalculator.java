@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 public class DigitCalculator {
   private final List<Operation> steps;
+  private long maxZ;
 
   public DigitCalculator(List<Operation> steps) {
     this.steps = steps;
@@ -26,6 +27,7 @@ public class DigitCalculator {
         ));
         try {
           steps.forEach(op -> op.execute(memory));
+          if (memory.get(Register.z) > maxZ) continue;
           next.merge(memory.get(Register.z), entry.getValue() * 10 + digit, chooser);
         } catch (ArithmeticException e) {
           // Ignore
@@ -33,6 +35,10 @@ public class DigitCalculator {
       }
     }
     return next;
+  }
+
+  public void setMaxZ(long maxZ) {
+    this.maxZ = maxZ;
   }
 
   enum Register implements Operand {
