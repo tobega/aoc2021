@@ -1,0 +1,33 @@
+def input: [$IN::lines -> [$...]];
+
+source solutionPart1
+  def width: $input(1)::length;
+  def height: $input::length;
+  @: {state: $input, still: 0, turn: 0"1"};
+  $@.still -> #
+  $@.turn!
+  when <=0> do @.still: 1; @.turn: $@.turn + 1;
+    $@.state -> \[y;x](
+      when <='>'?($@solutionPart1.state($y; ($x mod $width) + 1) <='.'>)> do '.' ! @solutionPart1.still: 0;
+      when <='.'?($@solutionPart1.state($y; ($x + $width - 2) mod $width + 1) <='>'>)> do '>'!
+      otherwise $ !
+    \) -> @.state: $;
+    $@.state -> \[y;x](
+      when <='v'?($@solutionPart1.state(($y mod $height) + 1; $x) <='.'>)> do '.' ! @solutionPart1.still: 0;
+      when <='.'?($@solutionPart1.state(($y + $height - 2) mod $height + 1; $x) <='v'>)> do 'v'!
+      otherwise $ !
+    \) -> @.state: $;
+    $@.still -> #
+end solutionPart1
+
+source solutionPart2
+  0 !
+end solutionPart2
+
+// String interpolation is to create a empty string value when property does not exist (otherwise the flow would just stop)
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write

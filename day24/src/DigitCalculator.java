@@ -70,15 +70,15 @@ public class DigitCalculator {
     div {
       @Override
       void apply(Register r, Operand operand, Map<Register, Long> memory) {
-        if (operand.get(memory) == 0) return;
+        if (operand.get(memory) == 0) throw new ArithmeticException();
         memory.put(r, memory.get(r) / operand.get(memory));
       }
     },
     mod {
       @Override
       void apply(Register r, Operand operand, Map<Register, Long> memory) {
-        if (operand.get(memory) <= 0) return;
-        if (memory.get(r) < 0) return;
+        if (operand.get(memory) <= 0) throw new ArithmeticException();
+        if (memory.get(r) < 0) throw new ArithmeticException();
         memory.put(r, memory.get(r) % operand.get(memory));
       }
     },
