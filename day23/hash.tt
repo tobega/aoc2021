@@ -1,0 +1,105 @@
+processor Set
+  source values
+    $@Set... ... !
+  end values
+  templates remove
+    def val: $;
+    def ind: $::hashCode -> $ mod $@Set::length + 1;
+    $@Set($ind) -> \[i](<=$val> ^@Set($ind;$i) !\) -> #
+    <[](0)> 0 !
+    <> 1 !
+  end remove
+  templates isMember // returning $ was helpful: 1
+    def val: $;
+    def ind: $::hashCode -> $ mod $@Set::length + 1;
+    $@Set($ind) -> \[i](<=$val> $i !\) -> #
+    <[](0)> 0 !
+    <> 1 !
+  end isMember
+  templates add // returning 1 for added was helpful: 1, $ for already present: 1
+    def val: $;
+    def ind: $::hashCode -> $ mod $@Set::length + 1;
+    $ -> #
+    <?($@Set($ind) <[<=$>]>)> 0 ! // Already exists
+    <?($@Set($ind) <[](32)>)> // rehash
+      def old: $@Set;
+      @Set: [1..$old::length*2 -> []];
+      $old... ... -> add -> !VOID
+      $ -> add !
+    <>
+      ..|@Set($ind): $;
+      1 !
+  end add
+  @:[1..32 -> []];
+  $... -> add -> !VOID
+end Set
+
+test 'set'
+  def set: [1, 1, 2, 5, 2, 2, 5, 1] -> Set;
+
+  assert [ $set::values ] <[<=1>,<=2>,<=5>](3)> 'Should be 1, 2, 5'
+
+  assert 1 -> set::add <=0> 'set should contain 1'
+
+  assert 4 -> set::add <=1> 'set should not contain 4'
+
+  assert 4 -> set::add <=0> 'set should now contain 4'
+
+  assert 5 -> set::remove <=1> 'set should remove 5'
+
+  assert 5 -> set::remove <=0> 'set should not remove 5 again'
+
+  assert 4 -> set::iscber <=1> '4 should be a cber'
+
+  assert 5 -> set::iscber <=0> '5 should not be a cber'
+end 'set'
+
+processor Map&{key:, value:}
+  source entries
+    $@Map... ... !
+  end entries
+  templates get
+    def needle: $;
+    def ind: $::hashCode -> $ mod $@Map::length + 1;
+    $@Map($ind)... -> #
+    <?($(key) <=$needle>)> $(value) !
+  end get
+  templates remove
+    def needle: $;
+    def ind: $::hashCode -> $ mod $@Map::length + 1;
+    $@Map($ind) -> \[i](<?($(key) <=$needle>)> ^@Map($ind;$i) !\)... -> $(value) !
+  end remove
+  templates put
+    def val: $;
+    def ind: $(key)::hashCode -> $ mod $@Map::length + 1;
+    $@Map($ind) -> #
+    <[](32)> // rehash
+      def old: $@Map;
+      @Map: [1..$old::length*2 -> []];
+      $old... ... -> put -> !VOID
+      $val -> put !
+    <>
+      $ -> \[i](<?($(key) <=$val(key)>)> ^@Map($ind;$i) !\)... !
+      ..|@Map($ind): $val;
+  end put
+  @:[1..32 -> []];
+  $... -> put -> !VOID
+end Map
+
+test 'map'
+  def map: [{letter: 'a', count: 1}, {letter: 'b', count: 2}] -> Map&{key: :(letter:), value: :(count:)};
+
+  assert [ $map::entries ] <[<={letter: 'a', count: 1}>, <={letter: 'b', count: 2}>](2)> 'loaded'
+
+  assert 'a' -> map::get <=1> 'a should be mapped to 1'
+
+  assert [{letter: 'a', count: 33} -> map::put] <[<={letter: 'a', count: 1}>](1)> 'should evict mapping a to 1'
+
+  assert 'a' -> map::get <=33> 'a should now be mapped to 33'
+
+  assert ['c' -> map::get] <[](0)> 'c should not be mapped'
+
+  assert ['b' -> map::remove] <[<=2>](1)> 'should remove 2 for b'
+
+  assert ['b' -> map::get] <[](0)> 'b should not be mapped'
+end 'map'
