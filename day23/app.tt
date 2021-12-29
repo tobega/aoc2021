@@ -48,23 +48,37 @@ data
   state <[<'.'|amphipod|[<amphipod>]>]>,
   cost <"e">
 
+  templates moveAllHome
+    @: $;
+    1 -> #
+    $@ !
 
+    when <..$@moveAllHome.state::length> do
+      def i: $;
+      $@moveAllHome.state($i) -> \(
+        when <3..
+             ?($@moveAllHome.state($) <~[<~=$>]>)
+             ?([$@moveAllHome.state($i+1..$)..., $@moveAllHome.state($..$i-1)...] <~[<3..>]>)>
+        do
+          def amphipod: $@moveAllHome.state($i);
+          ..|@moveAllHome.state($amphipod): $amphipod;
+          @moveAllHome.state($i): '.';
+          1 !
+        when <[<~=$i>](1..)
+             ?($@moveAllHome.state($(last)) <~[<~=$(last)>]>)
+             ?([$@moveAllHome.state($i..$(last))..., $@moveAllHome.state($(last)..$i)...] <~[<3..>]>)>
+        do
+          def amphipod: ^@moveAllHome.state($i;last);
+          ..|@moveAllHome.state($amphipod): $amphipod;
+          1 !
+        otherwise $i + 1 !
+      \) -> #
+  end moveAllHome
+  
 
 templates generateMoves&{depth:}
   def baseCost: $.cost;
   def basePosition: $.state;
-  templates moveHome
-    @: $basePosition;
-    ..|@($@($)): $@($);
-    @($): '.';
-    {state: $@, cost: $baseCost} !
-  end moveHome
-  templates moveDirectly
-    @: $basePosition;
-    def amphipod: ^@($;last);
-    ..|@($amphipod): $amphipod;
-    {state: $@, cost: $baseCost} !
-  end moveDirectly
   templates moveOut
     def from: $;
     $basePosition -> \[i](
@@ -76,11 +90,8 @@ templates generateMoves&{depth:}
             * $costs($@($i))} !
     \)... !
   end moveOut
+
   $basePosition -> \[i](
-    when <3.. ?($basePosition($) <~[<~=$>]>) ?([$basePosition($i+1..$)..., $basePosition($..$i-1)...] <~[<3..>]>)> do
-      $i -> moveHome !
-    when <[<~=$i>](1..) ?($basePosition($(last)) <~[<~=$(last)>]>) ?([$basePosition($i..$(last))..., $basePosition($(last)..$i)...] <~[<3..>]>)> do
-      $i -> moveDirectly !
     when <[<~=$i>](1..)> do
       $i -> moveOut !
   \)... !
@@ -88,18 +99,22 @@ end generateMoves
 
 templates solve
   def depth: $::length;
-  def states: [$ -> populateMap&{depth:$depth}] -> hash/Map&{key: :(state:), value: :()};
-  @: {};
+  def visited: [] -> hash/Map&{key: :(state:), value: :()};
+  @: {cost: 999999999"e", stack:[$ -> populateMap&{depth:$depth}]};
   1 -> #
-  $@ !
-  when <?($@ <={}>)> do
-    def lowest: $states::entries -> ..=Min&{by: :(cost:), select: :()};
-    $lowest.state -> states::remove -> !VOID
-    $lowest -> generateMoves&{depth: $depth} -> \(
-      when <{state: <~[<3..>]>} ?($.state(3) <~[<~=3>]>)?($.state(5) <~[<~=5>]>)?($.state(7) <~[<~=7>]>)?($.state(9) <~[<~=9>]>)> do
-        @solve: $;
-      otherwise
-        $ -> states::put -> !VOID
+  $@.cost !
+
+  when <?($@.stack <[](1..)>)> do ^@.stack(last) -> \(
+    when <{cost: <$@solve.cost..>}> do !VOID
+    when <?([$.state -> visited::get] <[](1..)>)> do !VOID
+    otherwise
+      $ -> visited::put -> !VOID
+      $ -> moveAllHome -> \(
+        when <{state: <~[<3..>]>} ?($.state(3) <~[<~=3>]>)?($.state(5) <~[<~=5>]>)?($.state(7) <~[<~=7>]>)?($.state(9) <~[<~=9>]>)> do
+          @solve.cost: $.cost;
+        otherwise
+          $ -> generateMoves&{depth: $depth} -> ..|@solve.stack: $;
+      \) -> !VOID
     \) -> !VOID
     1 -> #
 end solve
