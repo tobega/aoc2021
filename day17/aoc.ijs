@@ -2,10 +2,7 @@ input =: 2 2 $ ". > '-?[[:digit:]]+' rxall 1!:1 <'input.txt'
 
 triangles =: +/\ i.150
 
-solutionpart1 =: 3 : 0
-  maxspeed =: >. / | 1 { y
-  ((maxspeed - 1) * maxspeed) % 2
-)
+solutionpart1 =: 3 : '2 %~ */ (-1 0) + 2 $  >. / | 1 { y'
 
 solutionpart2 =: 3 : '(''two'', y)'
 
