@@ -65,6 +65,5 @@ end 'part2'
   when <='part1'|=''> do $solutionPart1 !
   when <='part2'> do $solutionPart2 !
   otherwise 'Unknown part $;' !
-\) -> 'Tailspin
-$;
+\) -> '$;
 ' -> !OUT::write

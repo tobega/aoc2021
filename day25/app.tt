@@ -20,14 +20,10 @@ source solutionPart1
     $@.still -> #
 end solutionPart1
 
-source solutionPart2
-  0 !
-end solutionPart2
-
 // String interpolation is to create a empty string value when property does not exist (otherwise the flow would just stop)
 '$:'part' -> SYS::property;' -> \(
   when <='part1'|=''> do $solutionPart1 !
-  when <='part2'> do $solutionPart2 !
+  when <='part2'> do 0 !
   otherwise 'Unknown part $;' !
 \) -> '$;
 ' -> !OUT::write

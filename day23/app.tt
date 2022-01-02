@@ -109,11 +109,12 @@ templates sort&{by:}
   <[](2..)>
     def pivot: $(1);
     [ [ $(2..last)... -> \(
-      <?(($ by $pivot) <..0>)>
-        $ !
-      <>
-        ..|@sort: $;
-     \)] -> sort&{by:by}..., $pivot, $@ -> sort&{by:by}... ] !
+        <?(($ by $pivot) <..0>)>
+          $ !
+        <>
+          ..|@sort: $;
+     \)] -> sort&{by:by}..., $pivot, $@ -> sort&{by:by}...
+    ] !
    <>
      $ !
 end sort
