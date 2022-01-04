@@ -1,0 +1,14 @@
+composer syntax
+  @: [];
+  (<incomplete|complete|error>) $@
+  rule open: (<='('|='['|='{'|='<'> -> \(when <='('> do ')'! when <='['> do ']'! when <='{'> do '}'! when <='<'> do '>'!\) -> ..|@: $;)
+  rule complete: (<open> <complete>* <=$@(last)> -> @: $@(1..last-1);)
+  rule error: (<incomplete> <=')'|=']'|='}'|='>'> -> \(when <=')'> do 3! when <=']'> do 57! when <='}'> do 1197! when <='>'> do 25137!\) -> @:$;) (<'.*'>)
+  rule incomplete: (<open> <complete>* <incomplete>?)
+end syntax
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part2'> do [$IN::lines -> syntax -> \(when <[]> do @:0; $(last..first:-1)... -> \(when <=')'> do 1! when <=']'> do 2! when <='}'> do 3! when <='>'> do 4!\) -> @: $@ * 5 + $; $@ !\)]
+    -> \sort(@:$; $@::length..2:-1 -> \(def i:$; 1..$i-1 -> # when <?($@sort($) <$@sort($i)..>)> do @sort([$, $i]): $@sort([$i, $])...;\) -> !VOID $@ !\sort) -> $((last+1)~/2) !
+  otherwise $IN::lines -> syntax -> \(when <0..> $!\) -> ..=Sum&{of: :()} !
+\) -> '$;$#10;' -> !OUT::write
