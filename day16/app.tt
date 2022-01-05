@@ -1,7 +1,10 @@
 def input: '$IN::lines...;';
 
-data packet <{version: <0..8>, type: <0..8>}>,
-  children <[<packet>]>
+data type <0..7>,
+  children <[<packet>+ VOID]>,
+  packet <{version: <0..7>, type: <type?($ <=4>)>, value: <0"1"..>}
+      |{version: <version>, type: <type ?($ <0..3>)>, children: <children>}
+      |{version: <version>, type: <type ?($ <5..7>)>, children: <children ?($ <[<packet>=2 VOID]>)>}>
 
 templates hexDigitToBitString
   <='0'> '0000'! <='1'> '0001'! <='2'> '0010'! <='3'> '0011'!
@@ -78,7 +81,7 @@ templates evaluatePacket
 end evaluatePacket
 
 source solutionPart2
-$input -> asBits -> decodePacket -> evaluatePacket !
+  $input -> asBits -> decodePacket -> evaluatePacket !
 end solutionPart2
 
 test 'part2 eq'
