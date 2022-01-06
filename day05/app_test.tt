@@ -1,9 +1,6 @@
-use modified 'app'
-  with super from modified 'app' 
-    def input: '';
-  end 'app' provided
-  def part: '';
-  def input: [[
+use 'app' stand-alone
+
+def input: [[
     '0,9 -> 5,9',
     '8,0 -> 0,8',
     '9,4 -> 3,4',
@@ -14,13 +11,12 @@ use modified 'app'
     '3,4 -> 1,4',
     '0,0 -> 8,8',
     '5,5 -> 8,2'    
-  ]... -> super/coords];
-end 'app'
+]... -> app/coords];
 
 test 'part1'
-  assert $app/solution&{part: 'part1'} <=5> ''
+  assert $input -> app/solution&{part: 'part1'} <=5> ''
 end 'part1'
 
 test 'part2'
-  assert $app/solution&{part: 'part2'} <=12> ''
+  assert $input -> app/solution&{part: 'part2'} <=12> ''
 end 'part2'

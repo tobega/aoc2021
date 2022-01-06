@@ -2,11 +2,9 @@ composer coords
   {x1: <"1">, (<','>) y1: <"1">, (<' -> '>) x2: <"1">, (<','>) y2: <"1">}
 end coords
 
-def input: [$IN::lines -> coords];
-
-source solution&{part:}
+templates solution&{part:}
   @: [0..999 -> [0..999 -> 0]];
-  $input ... -> \(when <?($part <='part2'>)|{x1: <=$.x2>}|{y1: <=$.y2>}> do $! \) -> points -> @($(1); $(2)): $@($(1); $(2)) + 1;
+  $ ... -> \(when <?($part <='part2'>)|{x1: <=$.x2>}|{y1: <=$.y2>}> do $! \) -> points -> @($(1); $(2)): $@($(1); $(2)) + 1;
   $@... ... -> \(<2..> $!\) -> ..=Count !
 end solution
 
@@ -23,4 +21,4 @@ templates points
     1..$points(1)::length -> $points(first..last; $) !
 end points
 
-$solution&{part: '$:'part' -> SYS::property;'} -> '$;$#10;' -> !OUT::write
+[$IN::lines -> coords] -> solution&{part: '$:'part' -> SYS::property;'} -> '$;$#10;' -> !OUT::write
