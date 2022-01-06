@@ -4,8 +4,6 @@ end coords
 
 def input: [$IN::lines -> coords];
 
-def part: '$:'part' -> SYS::property;';
-
 source solution&{part:}
   @: [0..999 -> [0..999 -> 0]];
   $input ... -> \(when <?($part <='part2'>)|{x1: <=$.x2>}|{y1: <=$.y2>}> do $! \) -> points -> @($(1); $(2)): $@($(1); $(2)) + 1;
@@ -25,4 +23,4 @@ templates points
     1..$points(1)::length -> $points(first..last; $) !
 end points
 
-'$:'part' -> SYS::property;' -> solution&{part: $part} -> '$;$#10;' -> !OUT::write
+$solution&{part: '$:'part' -> SYS::property;'} -> '$;$#10;' -> !OUT::write

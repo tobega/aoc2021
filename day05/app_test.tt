@@ -1,6 +1,5 @@
 use modified 'app'
   with super from modified 'app' 
-    def part: '';
     def input: '';
   end 'app' provided
   def part: '';
