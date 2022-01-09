@@ -1,0 +1,66 @@
+composer bits
+  [<='0'|='1'>+ -> \(when <='0'> do 0! otherwise 1!\)]
+end bits
+
+def input: [$IN::lines -> bits];
+
+processor Majority&{preferring:}
+  @: [0,0];
+  sink accumulate
+    @Majority($+1): $@Majority($+1) + 1;
+  end accumulate
+  source result
+    $@Majority(1) -> #
+    when <$@Majority(2)~..> do 0 !
+    when <..~$@Majority(2)> do 1 !
+    otherwise $preferring !
+  end result
+end Majority
+
+templates binary
+  @: 0;
+  $... -> @: $@ * 2 + $;
+  $@!
+end binary
+
+source solutionPart1
+  [1..$input(1)::length -> \($input(first..last;$)... -> ..=Majority&{preferring: -1} !\)]
+     -> binary -> $ * (([1..$input(1)::length -> 1] -> binary) - $) !
+end solutionPart1
+
+processor Minority&{preferring:}
+  @: $Majority&{preferring: ($preferring + 1) mod 2};
+  sink accumulate
+    $ -> !@Minority::accumulate
+  end accumulate
+  source result
+    $@Minority::result -> ($+1) mod 2 !
+  end result
+end Minority
+
+templates select&{on:, by:}
+  when <[](1)> do $ !
+  otherwise
+    def data: $;
+    def selector: $data(first..last; $on)... -> ..=by;
+    [$data... -> \(<?($($on) <=$selector>)> $!\)] !
+end select
+
+templates selectDigits&{by:}
+  @: $;
+  $(1) -> \[i]( @selectDigits: $@selectDigits -> select&{on: $i, by: by};\) -> !VOID
+  $@... -> binary!
+end selectDigits
+
+source solutionPart2
+  def ogr: $input -> selectDigits&{by: Majority&{preferring: 1}};
+  def csr: $input -> selectDigits&{by: Minority&{preferring:0}};
+  $ogr * $csr !
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
