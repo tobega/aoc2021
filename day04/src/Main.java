@@ -9,42 +9,40 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Main {
-    private final List<Integer> numbers;
+    private final int[] calledAt;
+    private final int[] numbers;
     private final List<Board> boards;
 
-    public Main(List<Integer> numbers, List<Board> boards) {
+    public Main(int[] numbers, List<Board> boards) {
         this.numbers = numbers;
+        this.calledAt = new int[numbers.length];
+        for (int i = 0; i < numbers.length; i++) {
+            calledAt[numbers[i]] = i;
+        }
         this.boards = boards;
     }
 
     private static class Board {
-        private final int[] rowMap;
-        private final int[] colMap;
-        private final int[] rowMarks = new int[5+1];
-        private final int[] colMarks = new int[5+1];
+        private final int[][] board;
 
-
-        public Board(int[] rowMap, int[] colMap) {
-            this.rowMap = rowMap;
-            this.colMap = colMap;
+        public Board(int[][] board) {
+            this.board = board;
         }
 
-        public int callsToCompletion(List<Integer> numbers) {
-            for (int i = 0; i < numbers.size(); i++) {
-                int number = numbers.get(i);
-                int r = rowMap[number];
-                if (r == 0) continue;
-                rowMap[number] = 0;
-                if (++rowMarks[r] == 5 ||
-                    ++colMarks[colMap[number]] == 5) {
-                    return i;
+        public int callsToCompletion(int[] calledAt) {
+            int[] rowMax = new int[5];
+            int[] colMax = new int[5];
+            for (int r = 0; r < board.length; r++) {
+                for (int c = 0; c < board[r].length; c++) {
+                    rowMax[r] = Math.max(rowMax[r], calledAt[board[r][c]]);
+                    colMax[c] = Math.max(colMax[c], calledAt[board[r][c]]);
                 }
             }
-            return -1;
+            return IntStream.concat(Arrays.stream(rowMax), Arrays.stream(colMax)).min().orElse(-1);
         }
 
-        public long getScore() {
-            return IntStream.range(0, 100).filter(i -> rowMap[i] != 0).sum();
+        public long getScore(int[] calledAt, int call) {
+            return Arrays.stream(board).flatMapToInt(Arrays::stream).filter(number -> calledAt[number] > call).sum();
         }
     }
 
@@ -52,33 +50,35 @@ public class Main {
         int lowestCalls = Integer.MAX_VALUE;
         Board winner = null;
         for (Board board : boards) {
-            int calls = board.callsToCompletion(numbers);
+            int calls = board.callsToCompletion(calledAt);
             if (calls >= 0 && calls < lowestCalls) {
                 lowestCalls = calls;
                 winner = board;
             }
         }
-        System.out.println(winner.getScore() * numbers.get(lowestCalls));
+        System.out.println(winner.getScore(calledAt, lowestCalls) * numbers[lowestCalls]);
     }
 
     private void part2() {
         int highestCalls = -1;
         Board winner = null;
         for (Board board : boards) {
-            int calls = board.callsToCompletion(numbers);
+            int calls = board.callsToCompletion(calledAt);
             if (calls > highestCalls) {
                 highestCalls = calls;
                 winner = board;
             }
         }
-        System.out.println(winner.getScore() * numbers.get(highestCalls));
+        System.out.println(winner.getScore(calledAt, highestCalls) * numbers[highestCalls]);
     }
 
     public static void main(String[] args) throws IOException {
         BufferedReader reader = Files.newBufferedReader(Path.of("input.txt"));
-        List<Integer> numbers = Arrays.stream(reader.readLine().split(","))
-            .map(Integer::parseUnsignedInt).collect(
-                Collectors.toList());
+        String[] calls = reader.readLine().split(",");
+        int[] numbers = new int[calls.length];
+        for (int i = 0; i < calls.length; i++) {
+            numbers[i] = Integer.parseUnsignedInt(calls[i]);
+        }
         reader.readLine();
         List<String> lines = reader.lines().filter(s -> !s.isEmpty())
             .collect(Collectors.toList());
@@ -94,16 +94,14 @@ public class Main {
     }
 
     private static Board readBoard(List<String> lines) {
-        int[] rowMap = new int[100];
-        int[] colMap = new int[100];
+        int[][] board = new int[5][5];
         for (int r = 0; r < lines.size(); r++) {
             String[] row = lines.get(r).trim().split("\s+");
             for (int c = 0; c < row.length; c++) {
                 int number = Integer.parseUnsignedInt(row[c]);
-                rowMap[number] = r+1;
-                colMap[number] = c+1;
+                board[r][c] = number;
             }
         }
-        return new Board(rowMap, colMap);
+        return new Board(board);
     }
 }
