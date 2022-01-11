@@ -18,13 +18,13 @@ public class Main {
     }
 
     private static class Board {
-        private final Integer[] rowMap;
-        private final Integer[] colMap;
-        private final int[] rowMarks = new int[5];
-        private final int[] colMarks = new int[5];
+        private final int[] rowMap;
+        private final int[] colMap;
+        private final int[] rowMarks = new int[5+1];
+        private final int[] colMarks = new int[5+1];
 
 
-        public Board(Integer[] rowMap, Integer[] colMap) {
+        public Board(int[] rowMap, int[] colMap) {
             this.rowMap = rowMap;
             this.colMap = colMap;
         }
@@ -32,9 +32,9 @@ public class Main {
         public int callsToCompletion(List<Integer> numbers) {
             for (int i = 0; i < numbers.size(); i++) {
                 int number = numbers.get(i);
-                Integer r = rowMap[number];
-                if (r == null) continue;
-                rowMap[number] = null;
+                int r = rowMap[number];
+                if (r == 0) continue;
+                rowMap[number] = 0;
                 if (++rowMarks[r] == 5 ||
                     ++colMarks[colMap[number]] == 5) {
                     return i;
@@ -44,7 +44,7 @@ public class Main {
         }
 
         public long getScore() {
-            return IntStream.range(0, 100).filter(i -> rowMap[i] != null).sum();
+            return IntStream.range(0, 100).filter(i -> rowMap[i] != 0).sum();
         }
     }
 
@@ -94,14 +94,14 @@ public class Main {
     }
 
     private static Board readBoard(List<String> lines) {
-        Integer[] rowMap = new Integer[100];
-        Integer[] colMap = new Integer[100];
+        int[] rowMap = new int[100];
+        int[] colMap = new int[100];
         for (int r = 0; r < lines.size(); r++) {
             String[] row = lines.get(r).trim().split("\s+");
             for (int c = 0; c < row.length; c++) {
                 int number = Integer.parseUnsignedInt(row[c]);
-                rowMap[number] = r;
-                colMap[number] = c;
+                rowMap[number] = r+1;
+                colMap[number] = c+1;
             }
         }
         return new Board(rowMap, colMap);
