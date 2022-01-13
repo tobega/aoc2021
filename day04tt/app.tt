@@ -1,0 +1,58 @@
+composer numbers
+  [<number>+]
+  rule number: <INT> (<=','>?)
+end numbers
+
+composer row
+  [<square>=5]
+  rule square: (<WS>?) <INT>
+end row
+
+source readInput
+  def calledNumbers: $IN::readline -> numbers;
+  $IN::readline -> !VOID
+  def boards: [[$IN::lines] -> \(
+    @: [];
+    $... -> #
+    $@ !
+    when <=''> do $@ ! @: [];
+    otherwise $ -> row -> ..|@: $;
+  \)];
+  {calledNumbers: $calledNumbers, boards: $boards, calledAt: $calledNumbers -> \revIndex(
+    @: [1..$::length];
+    $ -> \[i](@revIndex($+1): $i;\) -> !VOID
+    $@!
+  \revIndex)} !
+end readInput
+
+def input: $readInput;
+
+templates boardWinsAt
+  def board: $;
+  1..5 -> \(
+    $board($)... -> $input.calledAt($+1) -> ..=Max&{by: :(), select: :()} !
+    $board(first..last;$)... -> $input.calledAt($+1) -> ..=Max&{by: :(), select: :()} !
+  \) -> ..=Min&{by: :(), select: :()} !
+end boardWinsAt
+
+templates score
+  def win: $;
+  $input.boards($win.boardNo)... ... -> \(when <?($input.calledAt($+1) <$win.winsAt~..>)> $!\) -> ..=Sum&{of: :()} !
+end score
+
+source solutionPart1
+  $input.boards -> \[i]( {boardNo: $i, winsAt: $ -> boardWinsAt}!\) ... -> ..=Min&{by: :(winsAt:), select: :()}
+  -> $input.calledNumbers($.winsAt) * ($ -> score) !
+end solutionPart1
+
+source solutionPart2
+  $input.boards -> \[i]( {boardNo: $i, winsAt: $ -> boardWinsAt}!\) ... -> ..=Max&{by: :(winsAt:), select: :()}
+  -> $input.calledNumbers($.winsAt) * ($ -> score) !
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
