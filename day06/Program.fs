@@ -2,17 +2,6 @@
 
 open System
 
-type Command =
-  | Forward of int
-  | Down of int
-  | Up of int
-
-type Position = {
-    mutable distance: int;
-    mutable depth: int;
-    mutable aim: int;
-}
-
 let solutionPart1 (lanternfish:decimal[]) days =
   let propagate day =
     let ready = lanternfish.[0]
