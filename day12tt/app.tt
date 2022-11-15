@@ -1,0 +1,34 @@
+data smallCave <'[a-z]+'>, bigCave <'[A-Z]+'>, cave <='start'|='end'|smallCave|bigCave>, from <cave>, to <cave>
+
+composer path
+  { from: <cave> (<='-'>) to: <cave> } -> \($! {from: $.to, to: $.from} !\)
+  rule cave: <=cave´'start'|=cave´'end'|bigCave´'[A-Z]+'|smallCave´'[a-z]+'>
+end path
+
+def paths: {| $IN::lines -> path |};
+
+templates countPaths&{remainingPaths:, revisits:}
+  def visited: $;
+  sink recurse&{remaining:}
+    [$visited..., $] -> countPaths&{remainingPaths: $(last) -> \(
+      when <smallCave ?($remaining <=0"1">)> do ($remainingPaths notMatching {|{to: $}|}) !
+      otherwise $remainingPaths !
+    \), revisits: $remaining} -> @countPaths: $ + $@countPaths;
+  end recurse
+
+  @: 0;
+  ($remainingPaths matching {|{from: $(last)}|})... -> $.to -> #
+  $@ !
+
+  when <=cave´'end'> do @: $@ + 1;
+  when <bigCave | ?($visited <~[<´cave´=$>]>)> do $ -> !recurse&{remaining: $revisits}
+  when <?($revisits <1"1"..>)> do $ -> !recurse&{remaining: $revisits - 1"1"}    
+end countPaths
+
+//part 1
+[cave´'start'] -> countPaths&{remainingPaths: ($paths notMatching {|{to: cave´'start'}|}), revisits: 0"1"} -> !OUT::write
+
+'
+' -> !OUT::write
+//part 2
+[cave´'start'] -> countPaths&{remainingPaths: ($paths notMatching {|{to: cave´'start'}|}), revisits: 1"1"} -> !OUT::write
