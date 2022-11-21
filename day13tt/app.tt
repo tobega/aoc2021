@@ -1,0 +1,53 @@
+data folds <[<"x"|"y">* VOID]>
+
+composer point
+  {x: <INT"x">, (<=','>) y: <INT"y">}
+end point
+
+composer fold
+  (<='fold along '>) <x|y>
+  rule x: (<='x='>) <INT"x">
+  rule y: (<='y='>) <INT"y">
+end fold
+
+source input
+  @: {mode: 'points', points:[], folds: []};
+  $IN::lines -> #
+  $@({points:, folds:}) !
+  when <=''> do @.mode: 'folds';
+  when <?($@ <{mode: <='points'>}>)> do ..|@.points: $ -> point;
+  otherwise  ..|@.folds: $ -> fold;
+end input
+
+def instructions: $input;
+
+processor Paper
+  @: {|$...|};
+  sink foldAlong
+    def line: $;
+    @Paper: {|$@Paper... -> # |};
+    when <?($line <"x">)?($.x <$line..>)> do {x: 2 * $line - $.x, y: $.y} !
+    when <?($line <"y">)?($.y <$line..>)> do {x: $.x, y: 2 * $line - $.y} !
+    otherwise $!
+  end foldAlong
+  source points
+    $@Paper!
+  end points
+end Paper
+
+//part1
+def paper: $instructions.points -> Paper;
+$instructions.folds(1) -> !paper::foldAlong
+$paper::points -> '$::count;$#10;' -> !OUT::write
+
+//part2
+$instructions.folds(2..last)... -> !paper::foldAlong
+$paper::points -> \drawGrid(
+  def minX: $... -> ..=Min&{by: :(x:), select: :(x:)};
+  def maxX: $... -> ..=Max&{by: :(x:), select: :(x:)};
+  def minY: $... -> ..=Min&{by: :(y:), select: :(y:)};
+  def maxY: $... -> ..=Max&{by: :(y:), select: :(y:)};
+  @: $minY:[$minY..$maxY -> $minX:[$minX..$maxX -> '$#9647;']];
+  $... -> @($.y; $.x): '$#9646;';
+  $@... -> '$...;$#10;' !
+  \drawGrid) -> !OUT::write
