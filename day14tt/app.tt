@@ -1,0 +1,50 @@
+composer template
+  (<element´'.'> -> @:$;) {first: $@,
+     pairs: [ <element´'.'>+ -> \({first: $@template, second: $}! @template: $;\)]
+       -> $(collect {count: Count} by $),
+     last: $@}
+end template
+
+processor Polymer
+  def ends: {|{dedup: 'first', element:$.first, count: 1"1"},
+    {dedup: 'last', element:$.last, count: 1"1"}|};
+  @: {|$.pairs...|};
+
+  sink insert
+    def inserts: ($ join $@Polymer);
+    (($inserts({first:, count:, second: §.insert, dedup: '1$:§.first;$:§.second;'})
+    union
+    $inserts({second:, count:, first: §.insert, dedup: '2$:§.first;$:§.second;'}))
+    union
+    ($@Polymer({first:, second:, count:, dedup: ''}) notMatching $))
+    -> @Polymer: $(collect {count: Sum&{of: :(count:)}} by $({first:, second:}));
+  end insert
+
+  source difference
+    def counts: (($@Polymer({count:, dedup: '1$:§.first;$:§.second;', element: §.first})
+    union $@Polymer({count:, dedup: '2$:§.first;$:§.second;', element: §.second}))
+    union $ends) -> $(collect {count: Sum&{of: :(count:)}} by $({element:}));
+    (($counts... -> ..=Max&{by: :(count:), select: :(count:)})
+    - ($counts... -> ..=Min&{by: :(count:), select: :(count:)})) ~/ 2 !
+  end difference
+end Polymer
+
+def polymer: $IN::readline -> template -> Polymer;
+
+$IN::readline -> !VOID
+
+composer rule
+  {first: <element´'.'>, second: <element´'.'>, (<=' -> '>) insert: <element´'.'>}
+end rule
+
+def rules: {| $IN::lines -> rule |};
+
+//part1
+1..10 -> $rules -> !polymer::insert
+'$polymer::difference;
+' -> !OUT::write
+
+//part2
+11..40 -> $rules -> !polymer::insert
+'$polymer::difference;
+' -> !OUT::write
