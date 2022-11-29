@@ -1,0 +1,70 @@
+data tail <{}>
+
+composer snailfishNumber
+  @: 0;
+  [<pair>]
+  rule pair: (<='['> @: $@ + 1;) <pair|number> (<=','>) <pair|number> (<=']'> @: $@ - 1;)
+  rule number: {value:<INT"1">, level:$@}
+end snailfishNumber
+
+def numbers: [$IN::lines -> snailfishNumber];
+
+operator (left add right)
+  templates deepen
+    @: $;
+    $@::first -> #
+    when <$@::last~..> do $@!
+    when <?($@($) <{level: <=4>}>)> do //explode
+      $ -> \(<$@deepen::first~..>  $!\) -> @($-1).value: $@($-1).value + $@($).value;
+      ^@($) -> !VOID
+      $ -> \(<..~$@deepen::last> $!\) -> @($+1).value: $@($+1).value + $@($).value;
+      @($).value: 0"1";
+      $ + 1 -> #
+    otherwise @($).level: $@($).level::raw + 1;
+      $ + 1 -> #
+  end deepen
+  templates checkSplits
+    @: $;
+    $@::first -> #
+    when <$@::last~..> do $@!
+    when <$@::first.. ?($@($) <{value: <10"1"..>, level: <=4>}>)> do //explodes immediately
+      def toSplit: $@($).value;
+      $ -> \(<$@checkSplits::first~..>  $!\) -> @($-1).value: $@($-1).value + $@($).value ~/ 2;
+      $ -> \(<..~$@checkSplits::last> $!\) -> @($+1).value: $@($+1).value + ($@($).value + 1"1") ~/ 2;
+      @($).value: 0"1";
+      $ - 1 -> #
+    when <$@::first.. ?($@($) <{value: <10"1"..>}>)> do
+      @:[$@(first..~$)...,
+        {value: $@($).value ~/ 2, level: $@($).level::raw + 1},
+        {value: ($@($).value + 1"1") ~/ 2, level: $@($).level::raw + 1},
+        $@($~..last)...];
+      $ -> #
+    otherwise $+1 -> #
+  end checkSplits
+  [$left ..., $right ...] -> deepen -> checkSplits!
+end add
+
+templates magnitude
+  @: $;
+  $@::first -> #
+  when <..~$@::first> do $ + 1 -> #
+  when <?($@($) <{level: <=0>}>)> do $@($).value !
+  when <?($@($+1) <{level: <=$@($).level>}>)> do
+    @($): {level: $@($).level::raw - 1, value: 3 * $@($).value + 2 * $@($+1).value};
+    ^@($+1) -> !VOID
+    $ - 1 -> #
+  otherwise $ + 1 -> #
+end magnitude
+
+// part 1
+$numbers -> \(
+  @: $(first);
+  $(first~..last)... -> @: ($@ add $);
+  $@!
+\) -> magnitude -> !OUT::write
+
+'
+' -> !OUT::write
+
+// part 2
+[by $numbers..., by $numbers...] -> ($(first) add $(last)) -> magnitude -> ..=Max&{by: :(), select: :()} -> !OUT::write
